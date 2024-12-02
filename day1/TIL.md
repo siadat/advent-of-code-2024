@@ -1,0 +1,6 @@
+- The paste command is so good
+  - `| paste -s`
+  - `paste file1 file2`
+  - `paste -d- file1 file2`
+- The bc command is so good, it just works! E.g. `echo "1 +1" | bc`
+- The read command can parse multiple args `read -r arg1 arg2 arg3`

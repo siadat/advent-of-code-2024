@@ -1,6 +1,6 @@
 cat day2/input | while read -r report; do
-	count="$(echo "$report" | wc -w | awk "{print \$1 + 1}")"
-	yes "$report" | head -n $count | nl --starting-line-number=0 | while read -r idx report; do
+	report_len="$(echo "$report" | wc -w)"
+	yes "$report" | head -n $report_len | nl --starting-line-number=0 | while read -r idx report; do
 		report=($report)
 		unset report[$idx]
 		report="${report[@]}"

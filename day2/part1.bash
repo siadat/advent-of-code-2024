@@ -1,10 +1,20 @@
 cat day2/input | while read -r report; do
 	while read -r min max; do
 		transform="
+			# Example input:
+			# => 1 2 3
+
 			s/([0-9]+)/\1 \1/g;
+			# => 1 1 2 2 3 3
+
 			s/(^[0-9]+ | [0-9]+$)//g;
+			# => 1 2 2 3
+
 			s/([0-9]+) ([0-9]+)/((\2-\1)>=$min)\&\&((\2-\1)<=$max)/g;
+			# => (2-1)>=1&&(2-1)<=3 (3-2)>=1&&(3-2)<=3
+
 			s/ / \&\& /g;
+			# => join with &&
 		"
 		is_good="$(echo "$report" | sed -r "$transform" | bc)"
 		if [ "$is_good" -eq 1 ]; then

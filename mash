@@ -1,0 +1,30 @@
+#!/usr/bin/env bash
+function throttle() {
+	stdbuf -oL nl | while read -r idx line; do
+		echo "($idx) Throttling $(date -u)" >> /tmp/debug_chan
+		echo "$line"
+		sleep $1
+	done
+}
+function t() {
+	cmd="$@"
+	indent="$(printf "%${width}s" "")"
+	"$@" | while read -r line; do
+		echo "+ ${indent}$cmd" >> /tmp/debug_chan
+		echo -e "\t${indent}$line" >> /tmp/debug_chan
+		echo "$line"
+	done
+}
+function start_monitor() {
+	rm -f /tmp/debug_chan
+	mkfifo /tmp/debug_chan
+	tail -f /tmp/debug_chan &
+	TAIL_PID=$!
+}
+function stop_monitor() {
+	kill $TAIL_PID
+	wait
+}
+start_monitor
+source "$1"
+stop_monitor

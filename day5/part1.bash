@@ -9,7 +9,6 @@ cat day5/input | grep --fixed-strings '|' | while IFS='|' read -r prev next; do
 done
 
 # Check the sequences
-mkdir -p $root/full_nexts
 cat day5/input | grep , | nl | while read -r idx sequence; do
 	dir=$root/sequence$idx
 	while read -r page; do

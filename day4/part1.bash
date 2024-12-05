@@ -1,6 +1,6 @@
 cols="$(cat day4/input | wc -L)"
 rows="$(cat day4/input | wc -l)"
-(
+{
 	# horizontal
 	cat day4/input
 	# vertical
@@ -20,7 +20,7 @@ rows="$(cat day4/input | wc -l)"
 	done
 	paste -d '\n' /tmp/diagonal1.*
 	paste -d '\n' /tmp/diagonal2.*
-) \
+} \
 	| sed -u -r 's#(X|S)#\1\1#g' \
 	| grep -o --line-buffered -C20 --color -e XMAS -e SAMX \
 	| nl

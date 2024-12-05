@@ -1,9 +1,8 @@
-cols="$(cat day4/input | wc -L)"
-rows="$(cat day4/input | wc -l)"
 {
 	# horizontal
 	cat day4/input
 	# vertical
+	cols="$(cat day4/input | wc -L)"
 	seq 1 $cols | while read -r i; do
 		cat day4/input | cut -c $i-$i | paste -sd ''
 	done

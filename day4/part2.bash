@@ -1,5 +1,3 @@
-cols="$(cat day4/input | wc -L)"
-rows="$(cat day4/input | wc -l)"
 rm -f /tmp/day4.x-mas.*
 cat day4/input | nl | while read -r row line; do
 	echo "$line" | grep -o . | nl | while read -r col char; do

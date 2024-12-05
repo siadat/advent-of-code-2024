@@ -13,8 +13,7 @@ cat day5/input | grep , | nl | while read -r seqIdx sequence; do
 	is_corrected=
 	while true; do
 		dir=$root/sequence$seqIdx
-		echo > /dev/stderr
-		echo "sequence$seqIdx=$sequence" > /dev/stderr
+		echo "Checking sequence$seqIdx $sequence..." > /dev/stderr
 		rm -rf $root/sequence$seqIdx
 		while read -r pageIdx page; do
 			dir=$dir/$page
@@ -26,11 +25,12 @@ cat day5/input | grep , | nl | while read -r seqIdx sequence; do
 		dir=$root/sequence$seqIdx
 		while read -r pageIdx page; do
 			dir=$dir/$page
-			echo "Checking page=$page in sequence$seqIdx $sequence..." > /dev/stderr
+			# echo "Checking page=$page in sequence$seqIdx $sequence..." > /dev/stderr
 			matches="$(grep -w $page -R $dir --exclude="pageIdx" -l)"
 			while read -r match; do
 				if [ -z "$match" ]; then continue; fi
-				echo "Bad: $page was found in $sequence: ($match)" >> /dev/stderr
+				# echo "Bad: $page was found in $sequence: ($match)" >> /dev/stderr
+				# echo "Bad: $page was found in sequence" >> /dev/stderr
 				# Swap
 				badIdx=$(cat $(dirname $(dirname $match))/pageIdx)
 				IFS=',' read -r -a array <<< "$sequence"

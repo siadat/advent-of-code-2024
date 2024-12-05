@@ -1,13 +1,14 @@
 root=/dev/shm/day5
 rm -rf $root
 
+# Read the rules
 cat day5/input | grep --fixed-strings '|' | while IFS='|' read -r prev next; do
 	mkdir -p $root/forward/{$next,$prev}
 	touch $root/forward/{$next,$prev}/direct
 	echo "$next" >> $root/forward/$prev/direct
-	# ln -s $root/forward/$next $root/forward/$prev/$next
 done
 
+# Check the sequences
 mkdir -p $root/full_nexts
 cat day5/input | grep , | nl | while read -r idx sequence; do
 	dir=$root/sequence$idx

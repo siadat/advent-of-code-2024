@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 function throttle() {
 	stdbuf -oL nl | while read -r idx line; do
-		echo -e "\n($idx) Throttling $(date -u)" >> /tmp/debug_chan
+		echo "($idx) Throttling" >> /tmp/debug_chan
 		echo "$line"
 		sleep $1
 	done
@@ -16,16 +16,6 @@ function t() {
 		echo "+ $loc: t $cmd" >> /tmp/debug_chan
 		echo -e "\t${indent}$line" >> /tmp/debug_chan
 		echo "$line"
-	done
-}
-function d() {
-	cmd="$@"
-	loc="${BASH_SOURCE[1]}:${BASH_LINENO[0]}"
-	"$@" | while read -r line; do
-		echo "+ $loc: d $cmd" >> /tmp/debug_chan
-		echo -e "\t${indent}$line" >> /tmp/debug_chan
-		# d() doesn't send output to stdout, it is for debugging
-		# echo "$line"
 	done
 }
 function start_monitor() {

@@ -2,6 +2,26 @@
 root=/dev/shm/day5
 rm -rf $root
 
+# Example of storing the rules:
+#
+#     /dev/shm/day5/forward/53/direct
+#     /dev/shm/day5/forward/47/direct
+#     /dev/shm/day5/forward/13/direct
+#     /dev/shm/day5/forward/97/direct
+#     /dev/shm/day5/forward/61/direct
+#     /dev/shm/day5/forward/29/direct
+#     /dev/shm/day5/forward/75/direct
+#
+# Example of storing the sequences:
+#
+#     /dev/shm/day5/sequence1/
+#     └── 61
+#         ├── 13
+#         │   ├── 29
+#         │   │   └── nexts -> /dev/shm/day5/forward/29
+#         │   └── nexts -> /dev/shm/day5/forward/13
+#         └── nexts -> /dev/shm/day5/forward/61
+
 # Read the rules
 cat day5/input | std.filter_literal '|' | while IFS='|' std.read prev next; do
 	mkdir -p $root/forward/{$next,$prev}

@@ -2,22 +2,22 @@ root=/dev/shm/day5
 rm -rf $root
 
 # Read the rules
-cat day5/input | grep --fixed-strings '|' | while IFS='|' read -r prev next; do
+cat day5/input | std.filter_literal '|' | while IFS='|' std.read prev next; do
 	mkdir -p $root/forward/{$next,$prev}
-	touch $root/forward/{$next,$prev}/direct
+	std.create $root/forward/{$next,$prev}/direct
 	echo "$next" >> $root/forward/$prev/direct
 done
 
 # Check and correct the sequences
-cat day5/input | grep , | nl | while read -r seqIdx sequence; do
-	echo "Checking sequence$seqIdx $sequence..." > /dev/stderr
-	sequence_regex="$(echo "$sequence" | sed 's/,/|/g')"
+cat day5/input | std.filter_regex , | nl | while std.read seqIdx sequence; do
+	std.debug.log "Checking sequence$seqIdx $sequence..."
+	sequence_regex="$(echo "$sequence" | std.replace_all ',' '|')"
 
 	# Sort items in sequence by the number of dependencies in the sequence
-	echo "$sequence" | grep -Po '\d+' | while read -r page; do
-		dependency_count="$(grep -P "$sequence_regex" -R $root/forward/$page/direct | wc -l)"
+	echo "$sequence" | std.split , | while std.read page; do
+		dependency_count="$(std.find "$sequence_regex" $root/forward/$page/direct | std.count_lines)"
 		echo "$dependency_count $page"
-	done | sort -k1 -nr | col2 | paste -sd, > $root/sorted_sequence 
+	done | std.sort_numeric | std.reverse | col2 | std.join , > $root/sorted_sequence
 
 	if [ "$sequence" == "$(cat $root/sorted_sequence)" ]; then
 		# already good
@@ -25,8 +25,8 @@ cat day5/input | grep , | nl | while read -r seqIdx sequence; do
 	fi
 
 	sequence="$(cat $root/sorted_sequence)"
-	echo "Corrected: $sequence" > /dev/stderr
-	length="$(echo "$sequence" | grep -Po '\d+' | wc -l)"
-	middle_idx=$"$(( (length+1) / 2))"
-	echo "$sequence" | grep -Po '\d+' | sed -n "$middle_idx"p
-done | paste -sd+ | bc
+	std.debug.log "Corrected: $sequence"
+	length="$(echo "$sequence" | std.split , | std.count_lines)"
+	middle_idx=$(std.eval_math "($length+1) / 2")
+	echo "$sequence" | std.split , | std.filter_line_number $middle_idx
+done | std.join + | std.eval_math

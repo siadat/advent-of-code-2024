@@ -2,32 +2,32 @@ root=/dev/shm/day5
 rm -rf $root
 
 # Read the rules
-cat day5/input | grep --fixed-strings '|' | while IFS='|' read -r prev next; do
+cat day5/input | std.filter_literal '|' | while IFS='|' std.read prev next; do
 	mkdir -p $root/forward/{$next,$prev}
-	touch $root/forward/{$next,$prev}/direct
+	std.create $root/forward/{$next,$prev}/direct
 	echo "$next" >> $root/forward/$prev/direct
 done
 
 # Check the sequences
-cat day5/input | grep , | nl | while read -r idx sequence; do
+cat day5/input | grep , | nl | while std.read idx sequence; do
 	dir=$root/sequence$idx
-	while read -r page; do
+	while std.read page; do
 		dir=$dir/$page
 		mkdir -p $dir
 		ln -s $root/forward/$page $dir/nexts
-	done < <(echo "$sequence" | grep -Po '\d+')
+	done < <(echo "$sequence" | std.split ,)
 
 	dir=$root/sequence$idx
-	while read -r page; do
+	while std.read page; do
 		dir=$dir/$page
 		if grep -q -w $page -R $dir; then
-			echo "Bad: $idx $sequence" > /dev/stderr
+			std.debug.log "Bad: sequence$idx $sequence"
 			continue 2
 		fi
-	done < <(echo "$sequence" | grep -Po '\d+')
+	done < <(echo "$sequence" | std.split ,)
 
-	echo "Good: $idx $sequence" > /dev/stderr
-	length="$(echo "$sequence" | grep -Po '\d+' | wc -l)"
-	middle_idx=$"$(( (length+1) / 2))"
-	echo "$sequence" | grep -Po '\d+' | sed -n "$middle_idx"p
-done | paste -sd+ | bc
+	std.debug.log "Good: sequence$idx $sequence"
+	length="$(echo "$sequence" | std.split , | std.count_lines)"
+	middle_idx=$(std.eval_math "($length+1) / 2")
+	echo "$sequence" | std.split , | std.filter_line_number $middle_idx
+done | std.join + | std.eval_math

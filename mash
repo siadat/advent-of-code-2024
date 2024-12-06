@@ -28,6 +28,7 @@ function stop_monitor() {
 	kill $TAIL_PID
 	wait
 }
+# Experimental
 function array() {
 	local cmd=""
 	local name=""
@@ -72,6 +73,84 @@ function array() {
 		*) echo "Unknown command: $cmd" ;;
 	esac
 }
+function std.split() {
+	local sep="${1:-,}"
+	sed "s/$sep/\n/g"
+}
+function std.join() {
+	local sep="${1:-,}"
+	paste -sd "$sep"
+}
+function std.replace() {
+	local regx="$1"
+	local repl="$2"
+	sed "s/$regx/$repl/"
+}
+function std.replace_all() {
+	local regx="$1"
+	local repl="$2"
+	sed "s/$regx/$repl/g"
+}
+function std.read() {
+	read -r "$@"
+}
+function std.count_lines() {
+	wc -l
+}
+function std.eval_math() {
+	# if no argument is passed, start bc
+	if [ $# -eq 0 ]; then
+		bc
+	else
+		echo "$1" | bc
+	fi
+}
+function std.filter_line_number() {
+	local sed_args=()
+	for line in "$@"; do
+		sed_args+=("${line}p")
+	done
+
+	sed -n "${sed_args[@]}"
+}
+function std.filter_regex() {
+	local regx="$1"
+	grep -P "$regx" || true
+}
+function std.filter_literal() {
+	local regx="$1"
+	grep --fixed-strings "$regx" || true
+}
+function std.find() {
+	local regx="$1"
+	local path="$2"
+	grep -P "$regx" -R "$path" || true
+}
+function std.sort_numeric() {
+	sort -n
+}
+function std.reverse() {
+	tac
+}
+function std.create() {
+	touch "$@"
+}
+function std.debug.log() {
+	echo "$@" >> /dev/stderr
+}
+function blah() {
+	echo "blah"
+}
+
+# Error handling
+{
+	function error_handler() {
+	    echo "Error in file '${BASH_SOURCE[1]}' at line ${BASH_LINENO[0]}: '${BASH_COMMAND}'"
+	}
+	set -euo pipefail
+	trap error_handler ERR
+}
+
 start_monitor
 source "$1"
 stop_monitor

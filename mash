@@ -92,7 +92,21 @@ function std.replace_all() {
 	sed "s/$regx/$repl/g"
 }
 function std.read() {
-	read -r "$@"
+	local args=()
+	local sep=""
+
+	for arg in "$@"; do
+		case "$arg" in
+			--sep=*) sep="${arg#*=}" ;;
+			*) args+=("$arg") ;;
+		esac
+	done
+
+	if [ -n "$sep" ]; then
+		IFS="$sep" read -r "${args[@]}"
+	else
+		read -r "${args[@]}"
+	fi
 }
 function std.count_lines() {
 	wc -l

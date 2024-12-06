@@ -3,7 +3,7 @@ root=/dev/shm/day5
 rm -rf $root
 
 # Read the rules
-cat day5/input | std.filter_literal '|' | while IFS='|' std.read prev next; do
+cat day5/input | std.filter_literal '|' | while std.read --sep='|' prev next; do
 	mkdir -p $root/forward/{$next,$prev}
 	std.create $root/forward/{$next,$prev}/direct
 	echo "$next" >> $root/forward/$prev/direct

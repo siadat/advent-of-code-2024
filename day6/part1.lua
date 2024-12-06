@@ -1,4 +1,4 @@
-# Screencast: https://asciinema.org/a/pTjmG3ce0BDpSmnVQTzFtSLyL
+-- Screencast: https://asciinema.org/a/pTjmG3ce0BDpSmnVQTzFtSLyL
 vim.cmd.normal("gg0")
 vim.fn.search(">\\|<\\|\\^\\|v")
 local function get_char(row, col) return vim.fn.getline(row):sub(col, col) end

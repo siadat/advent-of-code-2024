@@ -1,3 +1,4 @@
+#!./mash
 root=/dev/shm/day5
 rm -rf $root
 

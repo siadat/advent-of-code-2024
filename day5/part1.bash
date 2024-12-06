@@ -12,7 +12,7 @@ rm -rf $root
 #     /dev/shm/day5/forward/29/direct
 #     /dev/shm/day5/forward/75/direct
 #
-# Example of storing the sequences:
+# Example of storing a sequence 61,13,29:
 #
 #     /dev/shm/day5/sequence1/
 #     └── 61

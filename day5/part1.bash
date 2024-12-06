@@ -21,7 +21,7 @@ cat day5/input | std.filter_literal , | nl | while std.read idx sequence; do
 	dir=$root/sequence$idx
 	while std.read page; do
 		dir=$dir/$page
-		if grep -q -w $page -R $dir; then
+		if std.find_whole $page $dir | std.any; then
 			std.debug.log "Bad: sequence$idx $sequence"
 			continue 2
 		fi

@@ -126,6 +126,15 @@ function std.find() {
 	local path="$2"
 	grep -P "$regx" -R "$path" || true
 }
+function std.find_whole() {
+	local regx="$1"
+	local path="$2"
+	grep -w -P "$regx" -R "$path" || true
+}
+function std.any() {
+	# exit immediately with 0 if anything in stdin
+	grep -q .
+}
 function std.sort_numeric() {
 	sort -n
 }

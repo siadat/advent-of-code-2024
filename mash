@@ -74,8 +74,12 @@ function array() {
 	esac
 }
 function std.split() {
-	local sep="${1:-,}"
-	sed "s/$sep/\n/g"
+	local sep="${1}"
+	if [ -z "$sep" ]; then
+		grep -o .
+	else
+		sed "s/$sep/\n/g"
+	fi
 }
 function std.join() {
 	local sep="${1:-,}"

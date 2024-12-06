@@ -28,6 +28,50 @@ function stop_monitor() {
 	kill $TAIL_PID
 	wait
 }
+function array() {
+	local cmd=""
+	local name=""
+	local value=""
+	local sep=","
+	local index=""
+
+	cmd="$1"
+	shift
+	args=("$@")
+
+	for arg in "${args[@]}"; do
+		case "$arg" in
+			--name=*) name="${arg#*=}" ;;
+			--value=*) value="${arg#*=}" ;;
+			--sep=*) sep="${arg#*=}" ;;
+			--index=*) index="${arg#*=}" ;;
+			--index2=*) index2="${arg#*=}" ;;
+		esac
+	done
+
+	case "$cmd" in
+		"new") echo "$value" | tr "$sep" "\n" > "/dev/shm/array-$name" ;;
+		"get")
+			if [ -z "$index" ]; then
+				cat "/dev/shm/array-$name"
+			else
+				cat "/dev/shm/array-$name" | sed -n "${index}p"
+			fi
+			;;
+		"del")
+			if [ -z "$index" ]; then
+				rm "/dev/shm/array-$name"
+			else
+				cat "/dev/shm/array-$name" > /tmp/tmp
+				cat /tmp/tmp | sed -e "${index}d" > "/dev/shm/array-$name"
+			fi
+			;;
+		"swap")
+			# TODO
+			;;
+		*) echo "Unknown command: $cmd" ;;
+	esac
+}
 start_monitor
 source "$1"
 stop_monitor

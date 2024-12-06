@@ -10,7 +10,7 @@ cat day5/input | std.filter_literal '|' | while IFS='|' std.read prev next; do
 done
 
 # Check and correct the sequences
-cat day5/input | std.filter_regex , | nl | while std.read seqIdx sequence; do
+cat day5/input | std.filter_literal , | nl | while std.read seqIdx sequence; do
 	std.debug.log "Checking sequence$seqIdx $sequence..."
 	sequence_regex="$(echo "$sequence" | std.replace_all ',' '|')"
 

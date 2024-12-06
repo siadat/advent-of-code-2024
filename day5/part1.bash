@@ -10,7 +10,7 @@ cat day5/input | std.filter_literal '|' | while IFS='|' std.read prev next; do
 done
 
 # Check the sequences
-cat day5/input | grep , | nl | while std.read idx sequence; do
+cat day5/input | std.filter_literal , | nl | while std.read idx sequence; do
 	dir=$root/sequence$idx
 	while std.read page; do
 		dir=$dir/$page

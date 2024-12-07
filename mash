@@ -178,6 +178,26 @@ function blah() {
 	trap error_handler ERR
 }
 
-start_monitor
-source "$1"
-stop_monitor
+function mash() {
+	local args=()
+	local cmd_str=""
+
+	for arg in "$@"; do
+		case "$arg" in
+			--command=*) cmd_str="${arg#*=}" ;;
+			*) args+=("$arg") ;;
+		esac
+	done
+
+	start_monitor
+	if [ -n "$cmd_str" ]; then
+		eval "$cmd_str"
+	else
+		for arg in "${args[@]}"; do
+			source "$arg"
+		done
+	fi
+	stop_monitor
+}
+
+mash "$@"

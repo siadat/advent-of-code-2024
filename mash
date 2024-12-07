@@ -165,8 +165,18 @@ function std.create() {
 function std.debug.log() {
 	echo "$@" >> /dev/stderr
 }
-function blah() {
-	echo "blah"
+function std.both() {
+	# Send stderr to stdout
+	"$@" 2>&1
+}
+function std.range() {
+	beg="${1:-1}"
+	end="${2:-}"
+	if [ -z "$end" ]; then
+		yes x | nl -v $beg | col1
+	else
+		seq "$beg" "$end"
+	fi
 }
 
 # Error handling

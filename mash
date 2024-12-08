@@ -238,15 +238,15 @@ function interpret() {
 	fi
 
 	# Run function:
-	local fn_name="$1"
-	if [ -z "$fn_name" ]; then
+	if [ $# -eq 0 ]; then
 		return
-	else
-		shift
-		if $verbose; then set -x; fi
-		"$fn_name" "$@"
-		if $verbose; then { set +x; } 2> /dev/null; fi
 	fi
+
+	local fn_name="$1"
+	shift
+	if $verbose; then set -x; fi
+	"$fn_name" "$@"
+	if $verbose; then { set +x; } 2> /dev/null; fi
 }
 
 function std.makefile() {

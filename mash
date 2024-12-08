@@ -73,7 +73,18 @@ function array() {
 		*) echo "Unknown command: $cmd" ;;
 	esac
 }
+function std.assert() {
+	local actual="$1"
+	local expected="$2"
+	if [ "$actual" != "$expected" ]; then
+		echo "Assertion failed:"
+		echo -e "Actual:\n\tt$actual"
+		echo -e "Expected:\n\t$expected"
+		exit 1
+	fi
+}
 function std.split() {
+	# Split into lines
 	local sep="${1}"
 	if [ -z "$sep" ]; then
 		grep -o .
@@ -169,6 +180,20 @@ function std.both() {
 	# Send stderr to stdout
 	"$@" 2>&1
 }
+function std.redirect() {
+	which="$1"
+	where="$2"
+	shift 2
+	case "$which" in
+		stdout) "$@" > "$where" ;;
+		stderr) "$@" 2> "$where" ;;
+		*) echo "Unknown redirection: $which" ;;
+	esac
+}
+function std.ignore_stderr() {
+	# Send stderr to /dev/null
+	std.redirect 2 /dev/nullk "$@"
+}
 function std.range() {
 	beg="${1:-1}"
 	end="${2:-}"
@@ -188,26 +213,97 @@ function std.range() {
 	trap error_handler ERR
 }
 
-function mash() {
-	local args=()
+function interpret() {
+	local expr_str=""
+
+	while getopts "c:" opt; do
+	    case $opt in
+		c) expr_str="$OPTARG" ;;
+		*) echo "Invalid option"; exit 1 ;;
+	    esac
+	done
+
+	# Display remaining arguments
+	shift $((OPTIND - 1))
+	echo "Remaining arguments: $@"
+
+	if [ -n "$expr_str" ]; then
+		eval "$expr_str"
+		shift
+	else
+		source "$1"
+		shift
+	fi
+
+	# Run function:
+	local fn_name="$1"
+	if [ -z "$fn_name" ]; then
+		return
+	else
+		shift
+		"$fn_name" "$@"
+	fi
+
+}
+
+function interpret_using_getopt() {
+	echo "s1: $@"
+	TEMP=$(getopt -o c: --long command: -n mash -- "$@")
+	echo "s2"
+	eval set -- "$TEMP"
+	echo "s3"
+	echo "TEMP = $TEMP"
+
 	local cmd_str=""
 
-	for arg in "$@"; do
-		case "$arg" in
-			--command=*) cmd_str="${arg#*=}" ;;
-			*) args+=("$arg") ;;
+	while [[ $# -gt 0 ]]; do
+		echo "Processing: $1"
+		case "$1" in
+			-c|--command)
+				cmd_str="$2"
+				shift 2
+				;;
+			--)
+				shift
+				echo "The reset of the arguments: $@"
+				break
+				;;
+			*)
+				echo "Unknown option: $1"
+				exit 1
+				;;
 		esac
 	done
 
-	start_monitor
 	if [ -n "$cmd_str" ]; then
 		eval "$cmd_str"
 	else
-		for arg in "${args[@]}"; do
-			source "$arg"
-		done
+		source="$1"
+		source "$source"
 	fi
-	stop_monitor
 }
 
-mash "$@"
+function std.quote() {
+	local str="$1"
+	declare -p str | cut -d'=' -f2-
+}
+std.assert "$(std.quote 'a b "c d" e')" '"a b \"c d\" e"'
+std.assert "$(std.quote "a b 'c d' e")" '"a b '"'"'c d'"'"' e"'
+
+function run_subcommand() {
+	local command="$1"
+	shift
+
+	for registered_command in "${mash_user_commands[@]}"; do
+		if [ "$command" == "$registered_command" ]; then
+			"$command" "$@"
+			exit
+		fi
+	done
+}
+
+
+start_monitor
+interpret "$@"
+run_subcommand "$@"
+stop_monitor

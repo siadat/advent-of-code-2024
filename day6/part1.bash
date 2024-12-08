@@ -1,6 +1,8 @@
 root=/dev/shm/day6
 rm -rf $root
 
+declare -A blocks
+declare -A visits
 guard_row=
 guard_col=
 guard_chr=
@@ -12,7 +14,7 @@ while std.read row line; do
 	while std.read col char; do
 		case "$char" in
 			"#" )
-				mkdir -p $root/blocks/$row/$col
+				blocks["$row,$col"]=$char
 				;;
 			"^" | "v" | "<" | ">" )
 				guard_col=$col
@@ -31,29 +33,29 @@ while true; do
 	# Find the closest block
 	case "$guard_chr" in
 		"^" )
-			next_row=$(std.eval_math "$guard_row - 1")
-			if [ -d $root/blocks/$next_row/$guard_col ]; then
+			next_row=$(( guard_row - 1 ))
+			if [ -v blocks["$next_row,$guard_col"] ]; then
 				guard_chr=">"
 			else
 				guard_row=$next_row
 			fi ;;
 		"v")
-			next_row=$(std.eval_math "$guard_row + 1")
-			if [ -d $root/blocks/$next_row/$guard_col ]; then
+			next_row=$(( guard_row + 1 ))
+			if [ -v blocks["$next_row,$guard_col"] ]; then
 				guard_chr="<"
 			else
 				guard_row=$next_row
 			fi ;;
 		"<")
-			next_col=$(std.eval_math "$guard_col - 1")
-			if [ -d $root/blocks/$guard_row/$next_col ]; then
+			next_col=$(( guard_col - 1 ))
+			if [ -v blocks["$guard_row,$next_col"] ]; then
 				guard_chr="^"
 			else
 				guard_col=$next_col
 			fi ;;
 		">")
-			next_col=$(std.eval_math "$guard_col + 1")
-			if [ -d $root/blocks/$guard_row/$next_col ]; then
+			next_col=$(( guard_col + 1 ))
+			if [ -v blocks["$guard_row,$next_col"] ]; then
 				guard_chr="v"
 			else
 				guard_col=$next_col
@@ -63,9 +65,9 @@ while true; do
 		break
 	fi
 
-	if ! [ -d $root/visited/$guard_row/$guard_col ]; then
-		total=$(std.eval_math "$total + 1")
-		mkdir -p $root/visited/$guard_row/$guard_col
+	if ! [ -v visits["$guard_row,$guard_col"] ]; then
+		total=$(( total + 1 ))
+		visits["$guard_row,$guard_col"]=1
 	fi
 done
 echo $total

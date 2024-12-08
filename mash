@@ -87,7 +87,9 @@ function std.split() {
 	# Split into lines
 	local sep="${1}"
 	if [ -z "$sep" ]; then
-		grep -o .
+		# Split into characters
+		# This is slightly faster than `grep -o .`
+		fold -w1
 	else
 		sed "s/$sep/\n/g"
 	fi

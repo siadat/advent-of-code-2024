@@ -215,9 +215,11 @@ function std.range() {
 
 function interpret() {
 	local expr_str=""
+	local verbose=false
 
-	while getopts "c:" opt; do
+	while getopts "c:v" opt; do
 	    case $opt in
+		v) verbose=true ;;
 		c) expr_str="$OPTARG" ;;
 		*) echo "Invalid option"; exit 1 ;;
 	    esac
@@ -225,7 +227,7 @@ function interpret() {
 
 	# Display remaining arguments
 	shift $((OPTIND - 1))
-	echo "Remaining arguments: $@"
+	# std.debug.log "Remaining arguments: $@"
 
 	if [ -n "$expr_str" ]; then
 		eval "$expr_str"
@@ -241,46 +243,26 @@ function interpret() {
 		return
 	else
 		shift
+		if $verbose; then set -x; fi
 		"$fn_name" "$@"
+		if $verbose; then { set +x; } 2> /dev/null; fi
 	fi
-
 }
 
-function interpret_using_getopt() {
-	echo "s1: $@"
-	TEMP=$(getopt -o c: --long command: -n mash -- "$@")
-	echo "s2"
-	eval set -- "$TEMP"
-	echo "s3"
-	echo "TEMP = $TEMP"
-
-	local cmd_str=""
-
-	while [[ $# -gt 0 ]]; do
-		echo "Processing: $1"
-		case "$1" in
-			-c|--command)
-				cmd_str="$2"
-				shift 2
-				;;
-			--)
-				shift
-				echo "The reset of the arguments: $@"
-				break
-				;;
-			*)
-				echo "Unknown option: $1"
-				exit 1
-				;;
-		esac
+function std.makefile() {
+	for file in "$@"; do
+		if [ -e "$file" ]; then
+			std.debug.log "File already exists: $file"
+		else
+			std.debug.log "File does not exists, will run function: $file"
+			# We expect a function with the same name as the file
+			"$file"
+		fi
 	done
+}
 
-	if [ -n "$cmd_str" ]; then
-		eval "$cmd_str"
-	else
-		source="$1"
-		source "$source"
-	fi
+function std.parse_args() {
+	std.debug.log "TODO: implement std.parse_args"
 }
 
 function std.quote() {

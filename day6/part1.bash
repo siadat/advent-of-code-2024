@@ -36,7 +36,6 @@ while true; do
 				guard_chr=">"
 			else
 				guard_row=$next_row
-				std.debug.log "l"
 			fi ;;
 		"v")
 			next_row=$(std.eval_math "$guard_row + 1")
@@ -44,7 +43,6 @@ while true; do
 				guard_chr="<"
 			else
 				guard_row=$next_row
-				std.debug.log "h"
 			fi ;;
 		"<")
 			next_col=$(std.eval_math "$guard_col - 1")
@@ -52,7 +50,6 @@ while true; do
 				guard_chr="^"
 			else
 				guard_col=$next_col
-				std.debug.log "k"
 			fi ;;
 		">")
 			next_col=$(std.eval_math "$guard_col + 1")
@@ -60,7 +57,6 @@ while true; do
 				guard_chr="v"
 			else
 				guard_col=$next_col
-				std.debug.log "j"
 			fi ;;
 	esac
 	if [ $guard_col -lt 1 ] || [ $guard_col -gt $cols ] || [ $guard_row -lt 1 ] || [ $guard_row -gt $rows ]; then

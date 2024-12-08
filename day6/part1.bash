@@ -33,28 +33,28 @@ while true; do
 	# Find the closest block
 	case "$guard_chr" in
 		"^" )
-			next_row=$(( guard_row - 1 ))
+			next_row="$(( guard_row -1 ))"
 			if [ -v blocks["$next_row,$guard_col"] ]; then
 				guard_chr=">"
 			else
 				guard_row=$next_row
 			fi ;;
 		"v")
-			next_row=$(( guard_row + 1 ))
+			next_row="$(( guard_row +1 ))"
 			if [ -v blocks["$next_row,$guard_col"] ]; then
 				guard_chr="<"
 			else
 				guard_row=$next_row
 			fi ;;
 		"<")
-			next_col=$(( guard_col - 1 ))
+			next_col="$(( guard_col -1 ))"
 			if [ -v blocks["$guard_row,$next_col"] ]; then
 				guard_chr="^"
 			else
 				guard_col=$next_col
 			fi ;;
 		">")
-			next_col=$(( guard_col + 1 ))
+			next_col="$(( guard_col +1 ))"
 			if [ -v blocks["$guard_row,$next_col"] ]; then
 				guard_chr="v"
 			else
@@ -66,7 +66,7 @@ while true; do
 	fi
 
 	if ! [ -v visits["$guard_row,$guard_col"] ]; then
-		total=$(( total + 1 ))
+		total="$(( total +1 ))"
 		visits["$guard_row,$guard_col"]=1
 	fi
 done

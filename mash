@@ -232,10 +232,10 @@ function interpret() {
 	# std.debug.log "Remaining arguments: $@"
 
 	if [ -n "$expr_str" ]; then
-		std.run_verbose $verbose eval "$expr_str"
+		std.verbose $verbose eval "$expr_str"
 		shift
 	else
-		std.run_verbose $verbose source "$1"
+		std.verbose $verbose source "$1"
 		shift
 	fi
 
@@ -246,10 +246,10 @@ function interpret() {
 
 	local fn_name="$1"
 	shift
-	std.run_verbose $verbose "$fn_name" "$@"
+	std.verbose $verbose "$fn_name" "$@"
 }
 
-function std.run_verbose() {
+function std.verbose() {
 	local verbose=$1
 	shift
 	if $verbose; then

@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-debug_chan=$(mktemp -u --suffix=.debug_chan)
+debug_chan=$(mktemp -u --suffix=.mash.debug_chan)
 debug_tail_pid=
 
 function std.debug.log() {
@@ -294,15 +294,55 @@ function std.make() {
 	for target in "$@"; do
 		cd "$cwd"
 		if [ -e "$target" ]; then
-			std.debug.log "Target $(std.quote "$target") Completed"
+			std.debug.log "Target $(std.quote "$target") OK"
 		else
 			std.debug.log "Target $(std.quote "$target") Making..."
 			# We expect a function with the same name as the target
 			std.eval "$target" # || echo "Failed to make $target $?"
+			local exit_code=$?
 			# TODO: why does this ^ continue to work even when target fails?
-			std.debug.log "Target $(std.quote "$target") Completed"
+			std.debug.log "Target $(std.quote "$target") Completed (exit code $exit_code)"
 		fi
 	done
+}
+
+function std.prefix() {
+	local prefix="$1"
+	while std.read line; do
+		echo "${prefix} $line"
+	done
+}
+function std.prefix_cmd() {
+	while std.read line; do
+		local prefix="$("$@")"
+		echo "$prefix $line"
+	done
+}
+std.assert "$(echo -e "a\nb\nc" | std.prefix "x")" "$(echo -e "x a\nx b\nx c")"
+function std.timestamp() {
+	std.prefix_cmd date -u '+%s.%N %Y-%m-%d@%H:%M:%S'
+}
+function std.suffix() {
+	local suffix="$1"
+	while std.read line; do
+		echo "$line ${suffix}"
+	done
+}
+std.assert "$(echo -e "a\nb\nc" | std.suffix "x")" "$(echo -e "a x\nb x\nc x")"
+
+function std.parallel() {
+	local parallel_log=$(mktemp -u --suffix=.mash.parallel_log)
+	mkfifo $parallel_log
+	{
+		for target in "$@"; do
+			{
+				std.make "$target" 2>&1 | std.prefix "[$(std.quote "$target")]" | std.timestamp
+			} > $parallel_log &
+		done
+	} &
+	while read -r line; do
+		echo "$line"
+	done < $parallel_log
 }
 function std.eval() {
 	eval "$@" || {

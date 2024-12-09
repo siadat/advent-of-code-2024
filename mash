@@ -333,13 +333,15 @@ std.assert "$(echo -e "a\nb\nc" | std.suffix "x")" "$(echo -e "a x\nb x\nc x")"
 function std.parallel() {
 	local parallel_log=$(mktemp -u --suffix=.mash.parallel_log)
 	mkfifo $parallel_log
-	{
-		for target in "$@"; do
-			{
-				std.make "$target" 2>&1 | std.prefix "[$(std.quote "$target")]" | std.timestamp
-			} > $parallel_log &
-		done
-	} &
+	for target in "$@"; do
+		{
+			std.make "$target" 2>&1 \
+				| std.prefix "[$(std.quote "$target")]" \
+				| std.timestamp
+		} > $parallel_log &
+	done
+
+	# This while loop stops automatically when all processes above exit.
 	while read -r line; do
 		echo "$line"
 	done < $parallel_log

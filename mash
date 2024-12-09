@@ -1,7 +1,10 @@
 #!/usr/bin/env bash
+
+debug_chan=$(mktemp -u --suffix=.debug_chan)
+debug_tail_pid=
 function throttle() {
 	stdbuf -oL nl | while read -r idx line; do
-		echo "($idx) Throttling" >> /tmp/debug_chan
+		echo "($idx) Throttling" >> $debug_chan
 		echo "$line"
 		sleep $1
 	done
@@ -13,19 +16,18 @@ function t() {
 	cmd="$@"
 	loc="${BASH_SOURCE[1]}:${BASH_LINENO[0]}"
 	"$@" | while read -r line; do
-		echo "+ $loc: t $cmd" >> /tmp/debug_chan
-		echo -e "\t${indent}$line" >> /tmp/debug_chan
+		echo "+ $loc: t $cmd" >> $debug_chan
+		echo -e "\t${indent}$line" >> $debug_chan
 		echo "$line"
 	done
 }
 function start_monitor() {
-	rm -f /tmp/debug_chan
-	mkfifo /tmp/debug_chan
-	tail -f /tmp/debug_chan &
-	TAIL_PID=$!
+	mkfifo $debug_chan
+	tail -f $debug_chan &
+	debug_tail_pid=$!
 }
 function stop_monitor() {
-	kill $TAIL_PID
+	kill $debug_tail_pid
 	wait
 }
 # Experimental
@@ -176,7 +178,16 @@ function std.create() {
 	touch "$@"
 }
 function std.debug.log() {
-	echo "$@" >> /dev/stderr
+	local file="${BASH_SOURCE[1]}:${BASH_LINENO[0]} in ${FUNCNAME[1]}"
+	echo "$file:" "$@" >> /dev/stderr
+}
+function std.error.log() {
+	# Print trace
+	echo "[error] $@" >> /dev/stderr
+	echo "[error] Trace:" >> /dev/stderr
+	for i in $(seq 1 $(( ${#FUNCNAME[@]} - 1 ))); do
+		echo "    ${BASH_SOURCE[$i]}:${BASH_LINENO[$i - 1]} in ${FUNCNAME[$i]}" >> /dev/stderr
+	done
 }
 function std.both() {
 	# Send stderr to stdout
@@ -206,13 +217,15 @@ function std.range() {
 	fi
 }
 
-# Error handling
 {
 	function error_handler() {
-	    echo "Error in file '${BASH_SOURCE[1]}' at line ${BASH_LINENO[0]}: '${BASH_COMMAND}'"
+	    echo "Error in file ${BASH_SOURCE[1]}:${BASH_LINENO[0]} in ${BASH_COMMAND}"
 	}
 	set -euo pipefail
 	trap error_handler ERR
+}
+{
+	trap stop_monitor EXIT
 }
 
 function interpret() {
@@ -231,21 +244,23 @@ function interpret() {
 
 	# Display remaining arguments
 	shift $((OPTIND - 1))
-	# std.debug.log "Remaining arguments: $@"
+	# "Remaining arguments: $@"
 
 	if [ -n "$source_file" ]; then
-		std.verbose $verbose source "$source_file"
+		std.verbose $verbose std.source "$source_file"
 	fi
 	if [ -n "$expr_str" ]; then
-		std.verbose $verbose eval "$expr_str"
-	fi
-
-	# Run function:
-	if [ $# -eq 0 ]; then
-		return
+		std.verbose $verbose std.eval "$expr_str"
 	fi
 }
 
+function std.cond() {
+	local cond=$1
+	if $cond; then
+		shift
+		"$@"
+	fi
+}
 function std.verbose() {
 	local verbose=$1
 	shift
@@ -259,17 +274,31 @@ function std.verbose() {
 }
 
 function std.make() {
-	CWD="$(pwd)"
-	for file in "$@"; do
-		cd "$CWD"
-		if [ -e "$file" ]; then
-			std.debug.log "File already exists: $file"
+	local cwd="$(pwd)"
+	for target in "$@"; do
+		cd "$cwd"
+		if [ -e "$target" ]; then
+			std.debug.log "Target $(std.quote "$target") OK"
 		else
-			std.debug.log "File does not exists, will run function: $file"
-			# We expect a function with the same name as the file
-			"$file"
+			std.debug.log "Making target $(std.quote "$target")..."
+			# We expect a function with the same name as the target
+			std.eval "$target" # || echo "Failed to make $target $?"
 		fi
 	done
+}
+function std.eval() {
+	eval "$@" || {
+		local exit_code=$?
+		std.error.log "Failed to eval $(std.quote "$*"): exit code $exit_code"
+		exit $exit_code
+	}
+}
+function std.source() {
+	source "$@" || {
+		local exit_code=$?
+		std.error.log "Failed to source $(std.quote "$*"): exit code $exit_code"
+		exit $exit_code
+	}
 }
 
 function std.parse_args() {
@@ -284,6 +313,10 @@ std.assert "$(std.quote 'a b "c d" e')" '"a b \"c d\" e"'
 std.assert "$(std.quote "a b 'c d' e")" '"a b '"'"'c d'"'"' e"'
 
 function run_subcommand() {
+	# TODO: apparently this is needed when I run `bash -c 'source mash; source script'`
+	# if [ $# -eq 0 ]; then
+	# 	return
+	# fi
 	local command="$1"
 	shift
 
@@ -299,4 +332,3 @@ function run_subcommand() {
 start_monitor
 interpret "$@"
 run_subcommand "$@"
-stop_monitor

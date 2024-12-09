@@ -2,6 +2,38 @@
 
 debug_chan=$(mktemp -u --suffix=.debug_chan)
 debug_tail_pid=
+
+function std.debug.log() {
+	local file="${BASH_SOURCE[1]}:${BASH_LINENO[0]} in ${FUNCNAME[1]}"
+	echo "$file:" "$@" >> /dev/stderr
+}
+function std.error.log() {
+	echo "[error]" "$@" >> /dev/stderr
+	echo "[error]" "Trace:" >> /dev/stderr
+	for i in $(seq 1 $(( ${#FUNCNAME[@]} - 1 ))); do
+		echo "    ${BASH_SOURCE[$i]}:${BASH_LINENO[$i - 1]} in ${FUNCNAME[$i]}" >> /dev/stderr
+	done
+}
+function std.assert() {
+	local actual="$1"
+	local expected="$2"
+	if [ "$actual" != "$expected" ]; then
+		std.error.log "Assertion failed:"
+		echo "Actual:"
+		echo "$actual" | nl
+		echo "Expected:"
+		echo "$expected" | nl
+		exit 1
+	fi
+}
+function std.quote() {
+	local str="$1"
+	declare -p str | cut -d'=' -f2-
+}
+std.assert "$(std.quote 'a b "c d" e')" '"a b \"c d\" e"'
+std.assert "$(std.quote "a b 'c d' e")" '"a b '"'"'c d'"'"' e"'
+
+
 function throttle() {
 	stdbuf -oL nl | while read -r idx line; do
 		echo "($idx) Throttling" >> $debug_chan
@@ -31,7 +63,7 @@ function stop_monitor() {
 	wait
 }
 # Experimental
-function array() {
+function std.array() {
 	local cmd=""
 	local name=""
 	local value=""
@@ -75,16 +107,12 @@ function array() {
 		*) echo "Unknown command: $cmd" ;;
 	esac
 }
-function std.assert() {
-	local actual="$1"
-	local expected="$2"
-	if [ "$actual" != "$expected" ]; then
-		echo "Assertion failed:"
-		echo -e "Actual:\n\tt$actual"
-		echo -e "Expected:\n\t$expected"
-		exit 1
-	fi
-}
+std.assert "$(std.array new --name=sequence --value=a,b,c,d,e,f --sep=,)" ""
+std.assert "$(std.array get --name=sequence)" "$(echo -e "a\nb\nc\nd\ne\nf\n")"
+std.assert "$(std.array get --name=sequence --index=2)" "b"
+std.assert "$(std.array del --name=sequence --index=2)" ""
+std.assert "$(std.array get --name=sequence)" "$(echo -e "a\nc\nd\ne\nf\n")"
+
 function std.split() {
 	# Split into lines
 	local sep="${1}"
@@ -176,18 +204,6 @@ function std.reverse() {
 }
 function std.create() {
 	touch "$@"
-}
-function std.debug.log() {
-	local file="${BASH_SOURCE[1]}:${BASH_LINENO[0]} in ${FUNCNAME[1]}"
-	echo "$file:" "$@" >> /dev/stderr
-}
-function std.error.log() {
-	# Print trace
-	echo "[error] $@" >> /dev/stderr
-	echo "[error] Trace:" >> /dev/stderr
-	for i in $(seq 1 $(( ${#FUNCNAME[@]} - 1 ))); do
-		echo "    ${BASH_SOURCE[$i]}:${BASH_LINENO[$i - 1]} in ${FUNCNAME[$i]}" >> /dev/stderr
-	done
 }
 function std.both() {
 	# Send stderr to stdout
@@ -305,12 +321,6 @@ function std.parse_args() {
 	std.debug.log "TODO: implement std.parse_args"
 }
 
-function std.quote() {
-	local str="$1"
-	declare -p str | cut -d'=' -f2-
-}
-std.assert "$(std.quote 'a b "c d" e')" '"a b \"c d\" e"'
-std.assert "$(std.quote "a b 'c d' e")" '"a b '"'"'c d'"'"' e"'
 
 function run_subcommand() {
 	# TODO: apparently this is needed when I run `bash -c 'source mash; source script'`

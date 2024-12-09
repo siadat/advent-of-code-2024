@@ -1,7 +1,0 @@
-#
-array new --name=sequence --value=a,b,c,d,e,f --sep=,
-
-array get --name=sequence
-array get --name=sequence --index=2
-array del --name=sequence --index=2
-array get --name=sequence

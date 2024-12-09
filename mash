@@ -216,13 +216,15 @@ function std.range() {
 }
 
 function interpret() {
-	local expr_str=""
+	local expr_str=
+	local source_file=
 	local verbose=false
 
-	while getopts "c:v" opt; do
+	while getopts "c:f:v" opt; do
 	    case $opt in
 		v) verbose=true ;;
 		c) expr_str="$OPTARG" ;;
+		f) source_file="$OPTARG" ;;
 		*) echo "Invalid option"; exit 1 ;;
 	    esac
 	done
@@ -231,22 +233,17 @@ function interpret() {
 	shift $((OPTIND - 1))
 	# std.debug.log "Remaining arguments: $@"
 
+	if [ -n "$source_file" ]; then
+		std.verbose $verbose source "$source_file"
+	fi
 	if [ -n "$expr_str" ]; then
 		std.verbose $verbose eval "$expr_str"
-		shift
-	else
-		std.verbose $verbose source "$1"
-		shift
 	fi
 
 	# Run function:
 	if [ $# -eq 0 ]; then
 		return
 	fi
-
-	local fn_name="$1"
-	shift
-	std.verbose $verbose "$fn_name" "$@"
 }
 
 function std.verbose() {
@@ -261,8 +258,10 @@ function std.verbose() {
 	fi
 }
 
-function std.makefile() {
+function std.make() {
+	CWD="$(pwd)"
 	for file in "$@"; do
+		cd "$CWD"
 		if [ -e "$file" ]; then
 			std.debug.log "File already exists: $file"
 		else

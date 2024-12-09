@@ -299,6 +299,7 @@ function std.make() {
 			std.debug.log "Target $(std.quote "$target") Making..."
 			# We expect a function with the same name as the target
 			std.eval "$target" # || echo "Failed to make $target $?"
+			# TODO: why does this ^ continue to work even when target fails?
 			std.debug.log "Target $(std.quote "$target") Completed"
 		fi
 	done

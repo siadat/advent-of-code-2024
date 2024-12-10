@@ -24,6 +24,15 @@ function std.assert() {
 		echo "$actual" | nl
 		echo "Expected:"
 		echo "$expected" | nl
+
+		if false; then
+			# Experimental: use git-diff
+			local actual_file=$(mktemp --suffix=.actual)
+			local expected_file=$(mktemp --suffix=.expected)
+			echo "$actual" > $actual_file
+			echo "$expected" > $expected_file
+			git diff --no-index --color=always $actual_file $expected_file
+		fi
 		exit 1
 	fi
 }
@@ -385,30 +394,105 @@ function std.reusable() {
 	mkfifo "$proc_input"
 	mkfifo "$proc_output"
 	{
-		# NOTE: proc_input must be a FIFO.
-		# NOTE: This line will unblock when a writer of proc_input FIFO is closed.
-		"$@" < "${proc_input}"  > "${proc_output}"
+		"$@" < "${proc_input}" > "${proc_output}"
 	} &
 	echo "${proc_input}" "${proc_output}"
 }
 
+function std.reusable_init() {
+	local fd_in_name=$1
+	local fd_out_name=$2
+	shift 2
+
+	local proc_input=$(mktemp -u)
+	local proc_output=$(mktemp -u)
+	mkfifo "$proc_input"
+	mkfifo "$proc_output"
+	{
+		# NOTE: proc_input must be a FIFO.
+		# NOTE: This line will unblock when a writer of proc_input FIFO is closed.
+		# DEBUG: local start=$EPOCHREALTIME
+		"$@" < "${proc_input}" > "${proc_output}"
+		# DEBUG: local end=$EPOCHREALTIME
+		# DEBUG: std.debug.log "Reusability completed in $(std.eval_math "$end - $start") seconds"
+	} &
+
+	exec {fd_in}<> "${proc_input}"
+	exec {fd_out}<> "${proc_output}"
+
+	printf -v "$fd_in_name" "%s" "$fd_in"
+	printf -v "$fd_out_name" "%s" "$fd_out"
+}
+function std.reusable_get() {
+	local fd_in_name=$1
+	local fd_out_name=$2
+	shift 2
+	local payload="$1"
+	local response_name="$2"
+	local response
+
+	echo "$payload" >&${!fd_in_name}
+	std.read response <&$fd_out
+
+	printf -v "$response_name" "%s" "$response"
+}
+function std.reusable_close() {
+	local fd_in_name=${!1}
+	local fd_out_name=${!2}
+	exec {fd_in_name}>&-
+	exec {fd_out_name}>&-
+}
+
 if ! $MASH_NOTEST; then
-	function mash.test.reusable() {
-		local in out line
-		std.read in out < <(std.reusable bc)
-		exec {in}<> "$in"
-		exec {out}<> "$out"
+	function mash.test.reusable_init() {
+		std.reusable_init fd_in fd_out bc
 
 		for i in {1..2}; do
-			echo "$i * 3.14" >&$in
-			std.read line <&$out
+			std.reusable_get fd_in fd_out "$i * 3.14" line
 		done
 
-		exec {in}>&-
-		exec {out}>&-
+		std.assert "$line" "6.28"
+
+		std.reusable_close fd_in fd_out
+		echo "Reusability test completed"
+	}
+	mash.test.reusable_init
+
+	function mash.test.reusable() {
+		local file_in file_out line
+		std.read file_in file_out < <(std.reusable bc)
+		exec {fd_in}<> "$file_in"
+		exec {fd_out}<> "$file_out"
+
+		for i in {1..2}; do
+			echo "$i * 3.14" >&$fd_in
+			std.read line <&$fd_out
+		done
+
+		exec {fd_in}>&-
+		exec {fd_out}>&-
 		std.assert "$line" "6.28"
 	}
 	mash.test.reusable
+fi
+
+if ! $MASH_NOTEST; then
+	# This tests ensure we can set a variable (test_variable)
+	# in current scope by calling a function (mash.test.set-variable)
+	function mash.test.caller1() {
+		local test_variable
+		mash.test.set-variable test_variable
+		std.assert "$test_variable" "123"
+	}
+	function mash.test.caller2() {
+		# Assert if test_variable is not set
+		std.assert "${test_variable:-}" ""
+	}
+	function mash.test.set-variable() {
+		printf -v "$1" "%s" "123"
+	}
+	mash.test.caller1
+	mash.test.caller2
 fi
 
 function run_subcommand() {

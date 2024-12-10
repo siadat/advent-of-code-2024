@@ -370,11 +370,38 @@ function std.source() {
 		exit $exit_code
 	}
 }
-
 function std.parse_args() {
 	std.debug.log "TODO: implement std.parse_args"
 }
+function std.new_feader() {
+	local proc_input=$(mktemp -u)
+	local proc_output=$(mktemp -u)
+	mkfifo "$proc_input"
+	mkfifo "$proc_output"
+	{
+		# NOTE: proc_input must be a FIFO.
+		# NOTE: This line will unblock when a writer of proc_input FIFO is closed.
+		"$@" < "${proc_input}"  > "${proc_output}"
+	} &
+	echo "${proc_input}" "${proc_output}"
+}
 
+function test.new_feader() {
+	local in out line
+	std.read in out < <(std.new_feader bc)
+	exec {in}<> "$in"
+	exec {out}<> "$out"
+
+	for i in {1..2}; do
+		echo "$i * 3.14" >&$in
+		std.read line <&$out
+	done
+
+	exec {in}>&-
+	exec {out}>&-
+	std.assert "$line" "6.28"
+}
+test.new_feader
 
 function run_subcommand() {
 	# TODO: apparently this is needed when I run `bash -c 'source mash; source script'`

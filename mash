@@ -2,6 +2,7 @@
 
 debug_chan=$(mktemp -u --suffix=.mash.debug_chan)
 debug_tail_pid=
+MASH_NOTEST=${MASH_NOTEST:-false}
 
 function std.debug.log() {
 	local file="${BASH_SOURCE[1]}:${BASH_LINENO[0]} in ${FUNCNAME[1]}"
@@ -26,6 +27,11 @@ function std.assert() {
 		exit 1
 	fi
 }
+if $MASH_NOTEST; then
+	function std.assert() {
+		true
+	}
+fi
 function std.quote() {
 	local str="$1"
 	declare -p str | cut -d'=' -f2-
@@ -386,22 +392,24 @@ function std.reusable() {
 	echo "${proc_input}" "${proc_output}"
 }
 
-function test.reusable() {
-	local in out line
-	std.read in out < <(std.reusable bc)
-	exec {in}<> "$in"
-	exec {out}<> "$out"
+if ! $MASH_NOTEST; then
+	function mash.test.reusable() {
+		local in out line
+		std.read in out < <(std.reusable bc)
+		exec {in}<> "$in"
+		exec {out}<> "$out"
 
-	for i in {1..2}; do
-		echo "$i * 3.14" >&$in
-		std.read line <&$out
-	done
+		for i in {1..2}; do
+			echo "$i * 3.14" >&$in
+			std.read line <&$out
+		done
 
-	exec {in}>&-
-	exec {out}>&-
-	std.assert "$line" "6.28"
-}
-test.reusable
+		exec {in}>&-
+		exec {out}>&-
+		std.assert "$line" "6.28"
+	}
+	mash.test.reusable
+fi
 
 function run_subcommand() {
 	# TODO: apparently this is needed when I run `bash -c 'source mash; source script'`

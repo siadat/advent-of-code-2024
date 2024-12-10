@@ -373,7 +373,7 @@ function std.source() {
 function std.parse_args() {
 	std.debug.log "TODO: implement std.parse_args"
 }
-function std.new_feader() {
+function std.reusable() {
 	local proc_input=$(mktemp -u)
 	local proc_output=$(mktemp -u)
 	mkfifo "$proc_input"
@@ -386,9 +386,9 @@ function std.new_feader() {
 	echo "${proc_input}" "${proc_output}"
 }
 
-function test.new_feader() {
+function test.reusable() {
 	local in out line
-	std.read in out < <(std.new_feader bc)
+	std.read in out < <(std.reusable bc)
 	exec {in}<> "$in"
 	exec {out}<> "$out"
 
@@ -401,7 +401,7 @@ function test.new_feader() {
 	exec {out}>&-
 	std.assert "$line" "6.28"
 }
-test.new_feader
+test.reusable
 
 function run_subcommand() {
 	# TODO: apparently this is needed when I run `bash -c 'source mash; source script'`

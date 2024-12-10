@@ -5,7 +5,7 @@ debug_tail_pid=
 
 function std.debug.log() {
 	local file="${BASH_SOURCE[1]}:${BASH_LINENO[0]} in ${FUNCNAME[1]}"
-	echo "$file:" "$@" >> /dev/stderr
+	echo "$file:" "$@" >> /dev/stderr # TODO: In nvim /dev/stderr is not available? maybe do: echo "$file:" "$@" >&2
 }
 function std.error.log() {
 	echo "[error]" "$@" >> /dev/stderr
@@ -34,6 +34,13 @@ std.assert "$(std.quote 'a b "c d" e')" '"a b \"c d\" e"'
 std.assert "$(std.quote "a b 'c d' e")" '"a b '"'"'c d'"'"' e"'
 
 
+function std.throttle() {
+	local delay="$1"
+	stdbuf -oL nl | while std.read line; do
+		echo "$line"
+		sleep "$delay"
+	done
+}
 function throttle() {
 	stdbuf -oL nl | while read -r idx line; do
 		echo "($idx) Throttling" >> $debug_chan
@@ -322,6 +329,9 @@ std.assert "$(echo -e "a\nb\nc" | std.prefix "x")" "$(echo -e "x a\nx b\nx c")"
 function std.timestamp() {
 	std.prefix_cmd date -u +'%Y-%m-%d@%H:%M:%S.%N%z'
 }
+function std.epoch() {
+	echo $EPOCHREALTIME
+}
 function std.suffix() {
 	local suffix="$1"
 	while std.read line; do
@@ -334,16 +344,16 @@ function std.parallel() {
 	local parallel_log=$(mktemp -u --suffix=.mash.parallel_log)
 	mkfifo $parallel_log
 	for target in "$@"; do
-		{
-			std.make "$target" 2>&1 \
-				| std.prefix "[$(std.quote "$target")]" \
-				| std.timestamp
-		} > $parallel_log &
+		(
+			{
+				std.make "$target" 2>&1 | std.prefix "[$(std.quote "$target")]"
+			} >> $parallel_log
+		) &
 	done
 
 	# This while loop stops automatically when all processes above exit.
 	while read -r line; do
-		echo "$line"
+		echo "$EPOCHREALTIME $line"
 	done < $parallel_log
 }
 function std.eval() {

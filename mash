@@ -320,7 +320,7 @@ function std.prefix_cmd() {
 }
 std.assert "$(echo -e "a\nb\nc" | std.prefix "x")" "$(echo -e "x a\nx b\nx c")"
 function std.timestamp() {
-	std.prefix_cmd date -u '+%s.%N %Y-%m-%d@%H:%M:%S'
+	std.prefix_cmd date -u +'%Y-%m-%d@%H:%M:%S.%N%z'
 }
 function std.suffix() {
 	local suffix="$1"

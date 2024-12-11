@@ -49,8 +49,9 @@ while std.read row line; do
 		local guard_chr=$guard_chr_init
 		std.debug.log "$(std.epoch) Trying blocked added to $candidate_row,$candidate_col with guard $guard_chr at $guard_row,$guard_col"
 		local steps=0
-		rm -rf "$root/directions"
-		mkdir -p "$root/directions"
+		declare -A directs
+		directs=()
+
 
 		while true; do
 			# Find the closest block
@@ -89,14 +90,16 @@ while std.read row line; do
 			fi
 
 			steps="$(( steps +1 ))"
-			if grep -F -wsq "$guard_chr" "$root/directions/$guard_row.$guard_col"; then
-				total="$(( total +1 ))"
-				echo "Found loop when bock is at $candidate_row,$candidate_col with $steps steps"
-				break
+			if [ -v directs["$guard_row,$guard_col"] ]; then
+				if [[ "${directs["$guard_row,$guard_col"]}" == *"$guard_chr"* ]]; then
+					total="$(( total +1 ))"
+					break
+				fi
+				directs["$guard_row,$guard_col"]="${directs["$guard_row,$guard_col"]}$guard_chr"
 			else
-				true
+				directs["$guard_row,$guard_col"]="$guard_chr"
 			fi
-			echo "$guard_chr" >> "$root/directions/$guard_row.$guard_col"
+
 		done
 
 		# Revert

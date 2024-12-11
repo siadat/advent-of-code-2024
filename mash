@@ -427,13 +427,17 @@ function std.reusable_get() {
 	local fd_in=${!1}
 	local fd_out=${!2}
 	local payload="$3"
-	local response_name="$4"
-	local response
 
+	# std.debug.log "Sending payload: $payload"
 	echo "$payload" >&${fd_in}
-	read -r response <&${fd_out}
 
-	printf -v "$response_name" "%s" "$response"
+	# If there's a 4th argument:
+	if [ $# -eq 4 ]; then
+		local response_name="$4"
+		local response
+		read -r response <&${fd_out}
+		printf -v "$response_name" "%s" "$response"
+	fi
 }
 function std.reusable_close() {
 	local fd_in=${!1}

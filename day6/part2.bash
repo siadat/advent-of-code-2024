@@ -9,6 +9,13 @@ guard_chr_init=
 rows=
 cols=
 
+declare -A col_moves
+declare -A row_moves
+declare -A rotates
+col_moves=( ["^"]=+0 ["v"]=+0 ["<"]=-1 [">"]=+1 )
+row_moves=( ["^"]=-1 ["v"]=+1 ["<"]=+0 [">"]=+0 )
+rotates=( ["^"]=">" [">"]="v" ["v"]="<" ["<"]="^" )
+
 # Create an empty directory for each block, and find the guard's position
 while std.read row line; do
 	for ((col = 1; col <= ${#line}; col++)); do
@@ -30,13 +37,12 @@ done < <(cat day6/input | nl)
 
 # Run the guard
 total=0 # Include the starting block
-while std.read row line; do
-	while std.read col char; do
+while read -r row line; do
+	while read -r col char; do
 		local candidate_row=
 		local candidate_col=
 		case "$char" in
-			"#" ) continue ;;
-			"^" | "v" | "<" | ">" ) continue ;;
+			"#" | "^" | "v" | "<" | ">" ) continue ;;
 			".")
 				candidate_row=$row
 				candidate_col=$col
@@ -48,48 +54,23 @@ while std.read row line; do
 		local guard_col=$guard_col_init
 		local guard_chr=$guard_chr_init
 		std.debug.log "$(std.epoch) Trying blocked added to $candidate_row,$candidate_col with guard $guard_chr at $guard_row,$guard_col"
-		local steps=0
 		declare -A directs
 		directs=()
 
-
 		while true; do
-			# Find the closest block
-			case "$guard_chr" in
-				"^" )
-					next_row="$(( guard_row -1 ))"
-					if [ -v blocks["$next_row,$guard_col"] ]; then
-						guard_chr=">"
-					else
-						guard_row=$next_row
-					fi ;;
-				"v")
-					next_row="$(( guard_row +1 ))"
-					if [ -v blocks["$next_row,$guard_col"] ]; then
-						guard_chr="<"
-					else
-						guard_row=$next_row
-					fi ;;
-				"<")
-					next_col="$(( guard_col -1 ))"
-					if [ -v blocks["$guard_row,$next_col"] ]; then
-						guard_chr="^"
-					else
-						guard_col=$next_col
-					fi ;;
-				">")
-					next_col="$(( guard_col +1 ))"
-					if [ -v blocks["$guard_row,$next_col"] ]; then
-						guard_chr="v"
-					else
-						guard_col=$next_col
-					fi ;;
-			esac
+			next_row=$(( guard_row + row_moves["$guard_chr"] ))
+			next_col=$(( guard_col + col_moves["$guard_chr"] ))
+			if [ -v blocks["$next_row,$next_col"] ]; then
+				guard_chr="${rotates["$guard_chr"]}"
+				continue
+			else
+				guard_row=$next_row
+				guard_col=$next_col
+			fi
 			if [ $guard_col -lt 1 ] || [ $guard_col -gt $cols ] || [ $guard_row -lt 1 ] || [ $guard_row -gt $rows ]; then
 				break
 			fi
 
-			steps="$(( steps +1 ))"
 			if [ -v directs["$guard_row,$guard_col"] ]; then
 				if [[ "${directs["$guard_row,$guard_col"]}" == *"$guard_chr"* ]]; then
 					total="$(( total +1 ))"

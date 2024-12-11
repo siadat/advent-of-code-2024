@@ -426,13 +426,12 @@ function std.reusable_init() {
 function std.reusable_get() {
 	local fd_in=${!1}
 	local fd_out=${!2}
-	shift 2
-	local payload="$1"
-	local response_name="$2"
+	local payload="$3"
+	local response_name="$4"
 	local response
 
 	echo "$payload" >&${fd_in}
-	std.read response <&$fd_out
+	read -r response <&${fd_out}
 
 	printf -v "$response_name" "%s" "$response"
 }

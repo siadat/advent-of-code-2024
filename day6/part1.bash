@@ -11,7 +11,8 @@ cols=
 
 # Create an empty directory for each block, and find the guard's position
 while std.read row line; do
-	while std.read col char; do
+	for ((col = 1; col <= ${#line}; col++)); do
+		char="${line:col-1:1}"
 		case "$char" in
 			"#" )
 				blocks["$row,$col"]=$char
@@ -23,7 +24,7 @@ while std.read row line; do
 				;;
 		esac
 		cols=$col
-	done < <(echo "$line" | std.split "" | nl)
+	done
 	rows=$row
 done < <(cat day6/input | nl)
 

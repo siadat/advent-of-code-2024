@@ -1,0 +1,1 @@
+cat day7input | while IFS=: read res line; do eval "echo '($(yes '(' | head -n $(echo $line | wc -w) | paste -sd '')'$(echo $line|sed -e 's# #\{+,\\*\}#g')==$res" | sed 's# # \|\| #g' | while read eq; do echo "(($eq)*$res"; done | sed -r -e "s#[0-9]+#\0\)#g" | tee /dev/stderr| bc; done |tee /dev/stderr| paste -sd+|bc

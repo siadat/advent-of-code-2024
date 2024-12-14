@@ -1,5 +1,4 @@
 #!/usr/bin/env bash
-
 debug_chan=$(mktemp -u --suffix=.mash.debug_chan)
 debug_tail_pid=
 MASH_NOTEST=${MASH_NOTEST:-false}
@@ -33,7 +32,7 @@ function std.assert() {
 			echo "$expected" > $expected_file
 			git diff --no-index --color=always $actual_file $expected_file
 		fi
-		exit 1
+		return 1
 	fi
 }
 if $MASH_NOTEST; then
@@ -358,17 +357,38 @@ std.assert "$(echo -e "a\nb\nc" | std.suffix "x")" "$(echo -e "a x\nb x\nc x")"
 function std.parallel() {
 	local parallel_log=$(mktemp -u --suffix=.mash.parallel_log)
 	mkfifo $parallel_log
+
+	# NOTE: Give these variables a value to enable prefixing (e.g. command name and timestamp)
+	local MASH_PARALLEL_PREFIX_STDOUT=${MASH_PARALLEL_PREFIX_STDOUT:-}
+	local MASH_PARALLEL_PREFIX_STDERR=${MASH_PARALLEL_PREFIX_STDERR:-}
+
 	for target in "$@"; do
-		(
+		{
 			{
-				std.make "$target" 2>&1 | std.prefix "[$(std.quote "$target")]"
+				std.eval "$target" 2> >(
+					while read -r line; do
+						if [ -z "$MASH_PARALLEL_PREFIX_STDERR" ]; then
+							echo 2 "$line"
+						else
+							echo 2 "$EPOCHREALTIME $(std.quote "$target") $line"
+						fi
+					done
+				) > >(
+					while read -r line; do
+						if [ -z "$MASH_PARALLEL_PREFIX_STDOUT" ]; then
+							echo 1 "$line"
+						else
+							echo 1 "$EPOCHREALTIME $(std.quote "$target") $line"
+						fi
+					done
+				)
 			} >> $parallel_log
-		) &
+		} &
 	done
 
 	# This while loop stops automatically when all processes above exit.
-	while read -r line; do
-		echo "$EPOCHREALTIME $line"
+	while read -r fd line; do
+		echo "$line" >> /dev/fd/$fd
 	done < $parallel_log
 }
 function std.eval() {
@@ -446,7 +466,35 @@ function std.reusable_close() {
 	exec {fd_out}>&-
 }
 
+function run_subcommand() {
+	# TODO: apparently this is needed when I run `bash -c 'source mash; source script'`
+	# if [ $# -eq 0 ]; then
+	# 	return
+	# fi
+	local command="$1"
+	shift
+
+	for registered_command in "${mash_user_commands[@]}"; do
+		if [ "$command" == "$registered_command" ]; then
+			"$command" "$@"
+			exit
+		fi
+	done
+}
+
+start_monitor
+
 if ! $MASH_NOTEST; then
+	function mash.test.parallel() {
+		local got="$(std.parallel "yes 1 | head || true" "yes 2 | head || true" "some-bad-command" | paste -sd+ | bc)"
+		std.assert "$got" "$(( 10*1 + 10*2))"
+	}
+	# We are capturing errors, because some-bad-command is expected to fail, without affecting the stdout
+	if ! mash.test.parallel > /tmp/mash.test.parallel.log 2>&1; then
+		cat /tmp/mash.test.parallel.log
+		exit 1
+	fi
+
 	function mash.test.reusable_init() {
 		local fd_in fd_out
 		std.reusable_init fd_in fd_out bc
@@ -498,23 +546,5 @@ if ! $MASH_NOTEST; then
 	mash.test.caller2
 fi
 
-function run_subcommand() {
-	# TODO: apparently this is needed when I run `bash -c 'source mash; source script'`
-	# if [ $# -eq 0 ]; then
-	# 	return
-	# fi
-	local command="$1"
-	shift
-
-	for registered_command in "${mash_user_commands[@]}"; do
-		if [ "$command" == "$registered_command" ]; then
-			"$command" "$@"
-			exit
-		fi
-	done
-}
-
-
-start_monitor
 interpret "$@"
 run_subcommand "$@"

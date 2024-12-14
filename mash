@@ -261,9 +261,9 @@ function std.range() {
 	set -euo pipefail
 	trap error_handler ERR
 }
-{
-	trap stop_monitor EXIT
-}
+# {
+# 	trap stop_monitor EXIT
+# }
 
 function interpret() {
 	local expr_str=
@@ -408,7 +408,7 @@ function std.source() {
 function std.parse_args() {
 	std.debug.log "TODO: implement std.parse_args"
 }
-function std.reusable() {
+function std.stdin_server() {
 	local proc_input=$(mktemp -u)
 	local proc_output=$(mktemp -u)
 	mkfifo "$proc_input"
@@ -419,7 +419,7 @@ function std.reusable() {
 	echo "${proc_input}" "${proc_output}"
 }
 
-function std.reusable_init() {
+function std.stdin_server_init() {
 	local fd_in_name=$1
 	local fd_out_name=$2
 	shift 2
@@ -443,7 +443,7 @@ function std.reusable_init() {
 	printf -v "$fd_in_name" "%s" "$fd_in"
 	printf -v "$fd_out_name" "%s" "$fd_out"
 }
-function std.reusable_get() {
+function std.stdin_server_get() {
 	local fd_in=${!1}
 	local fd_out=${!2}
 	local payload="$3"
@@ -457,9 +457,11 @@ function std.reusable_get() {
 		local response
 		read -r response <&${fd_out}
 		printf -v "$response_name" "%s" "$response"
+	else
+		true
 	fi
 }
-function std.reusable_close() {
+function std.stdin_server_close() {
 	local fd_in=${!1}
 	local fd_out=${!2}
 	exec {fd_in}>&-
@@ -482,7 +484,7 @@ function run_subcommand() {
 	done
 }
 
-start_monitor
+# start_monitor
 
 if ! $MASH_NOTEST; then
 	function mash.test.parallel() {
@@ -495,23 +497,35 @@ if ! $MASH_NOTEST; then
 		exit 1
 	fi
 
-	function mash.test.reusable_init() {
+	function mash.test.stdin_server_init() {
 		local fd_in fd_out
-		std.reusable_init fd_in fd_out bc
+		std.stdin_server_init fd_in fd_out bc
 
 		for i in {1..2}; do
-			std.reusable_get fd_in fd_out "$i * 3.14" line
+			std.stdin_server_get fd_in fd_out "$i * 3.14" line
 		done
 
 		std.assert "$line" "6.28"
 
-		std.reusable_close fd_in fd_out
+		std.stdin_server_close fd_in fd_out
 	}
-	mash.test.reusable_init
+	mash.test.stdin_server_init
 
-	function mash.test.reusable() {
+	function mash.test.stdin_server_init_no_value() {
+		local fd_in fd_out
+		std.stdin_server_init fd_in fd_out python3 -u -c "import sys; scope = {}; [exec(line.strip(), scope) for line in sys.stdin]"
+
+		for i in {1..2}; do
+			std.stdin_server_get fd_in fd_out "$i * 3.14"
+		done
+
+		std.stdin_server_close fd_in fd_out
+	}
+	mash.test.stdin_server_init_no_value
+
+	function mash.test.stdin_server() {
 		local file_in file_out line
-		std.read file_in file_out < <(std.reusable bc)
+		std.read file_in file_out < <(std.stdin_server bc)
 		exec {fd_in}<> "$file_in"
 		exec {fd_out}<> "$file_out"
 
@@ -524,7 +538,7 @@ if ! $MASH_NOTEST; then
 		exec {fd_out}>&-
 		std.assert "$line" "6.28"
 	}
-	mash.test.reusable
+	mash.test.stdin_server
 fi
 
 if ! $MASH_NOTEST; then

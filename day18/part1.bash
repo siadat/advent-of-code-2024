@@ -1,12 +1,12 @@
-grid_rows=70
-grid_cols=70
-first_n=1024
-input=day18/input
+# grid_rows=70
+# grid_cols=70
+# first_n=1024
+# input=day18/input
 
-# grid_rows=6
-# grid_cols=6
-# first_n=12
-# input=day18/example
+grid_rows=6
+grid_cols=6
+first_n=12
+input=day18/example
 
 declare -A corrupts
 declare -A cost_past
@@ -58,7 +58,6 @@ while true; do
 		break
 	fi
 	IFS=, read -r x y <<< $current
-	# echo "Current: $x,$y"
 	unset open_set["$x,$y"]
 	if [[ $x -eq $grid_cols && $y -eq $grid_rows ]]; then
 		break
@@ -74,7 +73,10 @@ while true; do
 			fi
 			local_x=$(( x + dx ))
 			local_y=$(( y + dy ))
-			if [[ $local_x -lt 0 || $local_x -gt $grid_cols || $local_y -lt 0 || $local_y -gt $grid_rows ]]; then
+			if [[ $local_x -lt 0 || $local_x -gt $grid_cols ]]; then
+				continue
+			fi
+			if [[ $local_y -lt 0 || $local_y -gt $grid_rows ]]; then
 				continue
 			fi
 			if [[ -n ${corrupts["$local_x,$local_y"]:-} ]]; then

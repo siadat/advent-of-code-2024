@@ -1,0 +1,4 @@
+# vim: ft=bash
+run-halat() {
+	echo "50: 1 2 3 4 5" | python3 halat.py <(cat day7/part1.halat.yaml | yq --input-format=yaml --output-format=json)
+}

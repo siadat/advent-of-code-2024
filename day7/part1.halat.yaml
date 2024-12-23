@@ -1,0 +1,48 @@
+# This is a YAML in which there is Python code.
+- Name: part1a
+  Fields:
+    - std
+    - list
+    - target
+    - queue
+    - current_sum
+    - current_index
+  Rules:
+
+  - If: BEGIN
+    Then: |
+      target, list = std.readline().split(': ')
+      list = [int(i) for i in list.split(' ')]
+      target = int(target)
+      queue = []
+      queue.append((list[0], 1))
+      current_index = None
+      current_sum = None
+
+  - If: current_index == len(list) and current_sum == target
+    Then: |
+      # Found a solution
+      std.stop(f"Found a solution: {current_sum}")
+
+  - If: current_index == len(list) and current_sum != target and len(queue) == 0
+    Then: |
+      # Did not find a solution
+      std.stop("Did not find a solution")
+
+  - If: len(queue) > 0 and (current_index is None) and (current_sum is None)
+    Then: |
+      current_sum, current_index = queue.pop(0)
+
+  - If: ((current_index is not None) or (current_sum is not None)) and (current_index < len(list))
+    Then: |
+      # print(f"current_sum: {current_sum}, current_index: {current_index}")
+      queue.append((current_sum + list[current_index], current_index + 1))
+      queue.append((current_sum * list[current_index], current_index + 1))
+      current_index = None
+      current_sum = None
+
+  - If: current_sum != target and current_index == len(list) and len(queue) > 0
+    Then: |
+      # Not found
+      current_index = None
+      current_sum = None
